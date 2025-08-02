@@ -2,13 +2,22 @@ from flask import Flask, render_template, request, redirect, url_for
 import openai
 import json
 import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = Flask(__name__)
 
+
+# Load config from .env
+BASE_URL = os.getenv("BASE_URL")
+API_KEY = os.getenv("API_KEY")
+MODEL = os.getenv("MODEL")
+
 # Khởi tạo OpenAI client
 client = openai.OpenAI(
-    base_url="https://aiportalapi.stu-platform.live/jpe",
-    api_key="sk-uZCEwpnpSDlzc1iARlWvwQ",
+    base_url=BASE_URL,
+    api_key=API_KEY,
 )
 
 HISTORY_FILE = "history.json"
@@ -80,7 +89,7 @@ def explain_word(word):
     ]
 
     response = client.chat.completions.create(
-        model="GPT-4o-mini",
+        model=MODEL,
         messages=messages,
     )
 
@@ -190,7 +199,7 @@ def chat():
         {"role": "user", "content": user_message},
     ]
     response = client.chat.completions.create(
-        model="GPT-4o-mini",
+        model=MODEL,
         messages=messages,
         tools=function_tools,
         tool_choice="auto",

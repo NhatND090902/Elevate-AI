@@ -348,12 +348,30 @@
         chatMessages.scrollTop = chatMessages.scrollHeight;
       }
 
+      function showWaiting() {
+        const waitingDiv = document.createElement("div");
+        waitingDiv.id = "chatbox-waiting";
+        waitingDiv.className = "text-center mb-2";
+        waitingDiv.innerHTML = `<span class='badge bg-warning text-dark'>Bot:</span> <span>Waiting for response...</span>`;
+        chatMessages.appendChild(waitingDiv);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+      }
+
+      function removeWaiting() {
+        const waitingDiv = document.getElementById("chatbox-waiting");
+        if (waitingDiv) waitingDiv.remove();
+      }
+
+      const sendBtn = chatForm.querySelector("button[type='submit']");
+
       chatForm.addEventListener("submit", function (e) {
         e.preventDefault();
         const message = chatInput.value.trim();
         if (!message) return;
         appendMessage("user", message);
         chatInput.value = "";
+        sendBtn.disabled = true;
+        showWaiting();
         fetch("/chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -361,10 +379,14 @@
         })
           .then((res) => res.json())
           .then((data) => {
+            removeWaiting();
             appendMessage("bot", data.reply);
+            sendBtn.disabled = false;
           })
           .catch(() => {
+            removeWaiting();
             appendMessage("bot", "Error: Could not connect to chat server.");
+            sendBtn.disabled = false;
           });
       });
     </script>
