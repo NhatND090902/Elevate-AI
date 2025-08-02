@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Vocabulary Flashcards</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css" />
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.0/font/bootstrap-icons.css">
+
+  <style>
+    body {
+      background-color: #f4f6f8;
+      padding: 0;
+    }
+
+    .navbar {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .navbar-brand {
+      font-weight: 700;
+      font-size: 1.5rem;
+    }
+
+    .main-content {
+      padding: 40px;
+    }
+
+    .page-header {
+      text-align: center;
+      margin-bottom: 2rem;
+      padding: 2rem 0;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+
+    .flashcard {
+      background-color: transparent;
+      border-radius: 15px;
+      padding: 0;
+      height: 300px;
+      perspective: 1000px;
+      cursor: pointer;
+      width: 70%;
+    }
+
+    .card-flip {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transition: transform 0.6s;
+      transform-style: preserve-3d;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      border-radius: 15px;
+    }
+
+    /* Flip dọc theo trục X */
+    .card-flip.flipped {
+      transform: rotateX(180deg);
+    }
+
+    .card-front,
+    .card-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 15px;
+      padding: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #fff;
+      overflow-y: auto;
+      text-align: center;
+    }
+
+    /* Mặt sau cũng xoay 180 độ theo trục X */
+    .card-back {
+      transform: rotateX(180deg);
+      background-color: #f9f9f9;
+      text-align: left;
+      white-space: pre-wrap;
+      font-size: 1rem;
+    }
+
+    .card-back pre {
+      white-space: pre-wrap;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+      word-break: break-word;
+      font-size: 1rem;
+      text-align: left;
+    }
+
+    .swiper {
+      width: 100%;
+      padding-bottom: 40px;
+    }
+
+    .swiper-slide {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .card-controls {
+      text-align: center;
+      margin-top: 20px;
+    }
+
+    .card-controls button {
+      margin: 0 5px;
+    }
+
+    h5 {
+      font-weight: 700;
+      font-size: 1.5rem;
+      margin: 0;
+    }
+
+    .stats-info {
+      text-align: center;
+      margin-bottom: 1rem;
+      color: #6c757d;
+    }
+
+    .form-section {
+      background: white;
+      padding: 2rem;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+      margin-bottom: 2rem;
+    }
+  </style>
+</head>
+
+<body>
+  <nav class="navbar navbar-expand-lg navbar-dark">
+    <div class="container">
+      <a class="navbar-brand" href="{{ url_for('index') }}">
+        <i class="bi bi-journal-bookmark"></i> FlashCard
+      </a>
+      <div class="navbar-nav ms-auto">
+        <a class="nav-link active" href="{{ url_for('index') }}">
+          <i class="bi bi-cards"></i> Thẻ học
+        </a>
+        <a class="nav-link" href="{{ url_for('flashcard_list') }}">
+          <i class="bi bi-list-ul"></i> Danh sách
+        </a>
+      </div>
+    </div>
+  </nav>
+
+  <div class="main-content">
+    <div class="container">
+      <div class="page-header">
+        <h1><i class="bi bi-journal-bookmark"></i> Vocabulary Flashcards</h1>
+        <p>Học từ vựng tiếng Anh một cách thông minh</p>
+      </div>
+
+      <div class="form-section">
+        <form method="POST" class="d-flex gap-2" autocomplete="off">
+          <input type="text" class="form-control" name="word" placeholder="Nhập từ tiếng Anh..." required />
+          <button class="btn btn-primary">
+            <i class="bi bi-search"></i> Phân tích
+          </button>
+        </form>
+      </div>
+
+      {% if result %}
+      <div class="alert alert-success">
+        <i class="bi bi-check-circle"></i> Từ mới <strong>{{ word }}</strong> đã được thêm!
+        <a href="{{ url_for('flashcard_list') }}" class="btn btn-sm btn-outline-primary ms-2">
+          <i class="bi bi-list-ul"></i> Xem danh sách
+        </a>
+      </div>
+      {% endif %}
+
+      {% if history %}
+      <div class="stats-info">
+        <i class="bi bi-collection"></i>
+        Bạn đã học <strong>{{ history|length }}</strong> từ vựng
+        <a href="{{ url_for('flashcard_list') }}" class="btn btn-sm btn-outline-secondary ms-2">
+          <i class="bi bi-list-ul"></i> Xem tất cả
+        </a>
+      </div>
+
+      <div class="text-end mb-2">
+        <button class="btn btn-secondary btn-sm" onclick="shuffleCards()">
+          <i class="bi bi-shuffle"></i> Trộn bài
+        </button>
+      </div>
+
+      <div class="swiper">
+        <div class="swiper-wrapper" id="flashcard-wrapper">
+          {% for item in history %}
+          <div class="swiper-slide">
+            <div class="flashcard">
+              <div class="card-flip" tabindex="0" onclick="this.classList.toggle('flipped')">
+                <div class="card-front">
+                  <h5>{{ item.word }}</h5>
+                </div>
+                <div class="card-back">
+                  <pre>{{ item.result }}</pre>
+                </div>
+              </div>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% else %}
+      <div class="text-center py-5">
+        <i class="bi bi-journal-x" style="font-size: 4rem; color: #dee2e6;"></i>
+        <h3 class="mt-3">Chưa có flashcard nào</h3>
+        <p class="text-muted">Hãy thêm từ vựng đầu tiên của bạn!</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
+  <script>
+    const swiper = new Swiper(".swiper", {
+      navigation: {
+        nextEl: ".swiper-button-next",
+        prevEl: ".swiper-button-prev",
+      },
+      loop: false,
+    });
+
+    // Shuffle cards
+    function shuffleCards() {
+      const wrapper = document.getElementById("flashcard-wrapper");
+      const slides = Array.from(wrapper.children);
+      for (let i = slides.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        var temp = slides[i];
+        slides[i] = slides[j];
+        slides[j] = temp;
+      }
+      wrapper.innerHTML = "";
+      slides.forEach(function (s) {
+        wrapper.appendChild(s);
+      });
+      swiper.update();
+    }
+
+    // Keyboard controls
+    document.addEventListener("keydown", function (event) {
+      const key = event.key;
+      const activeSlide = document.querySelector(".swiper-slide-active");
+      if (!activeSlide) return;
+      const cardFlip = activeSlide.querySelector(".card-flip");
+      if (!cardFlip) return;
+
+      switch (key) {
+        case "ArrowUp":
+        case "ArrowDown":
+          cardFlip.classList.toggle("flipped");
+          break;
+        case "ArrowLeft":
+          swiper.slidePrev();
+          break;
+        case "ArrowRight":
+          swiper.slideNext();
+          break;
+      }
+    });
+  </script>
+</body>
+
+</html>
