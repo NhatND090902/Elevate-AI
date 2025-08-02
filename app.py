@@ -120,28 +120,25 @@ def delete_flashcard_route(index):
     return redirect(url_for("flashcard_list"))
 
 
-# Simple keyword-based filter for English learning scope
-def is_english_learning_question(question):
-    keywords = [
-        "english",
-        "vocabulary",
-        "word",
-        "grammar",
-        "sentence",
-        "example",
-        "meaning",
-        "definition",
-        "translate",
-        "translation",
-        "mnemonic",
-        "tip",
-        "learn",
-        "practice",
-        "fill in the blank",
-        "multiple choice",
-    ]
-    question_lower = question.lower()
-    return any(kw in question_lower for kw in keywords)
+function_tools = [
+    {
+        "type": "function",
+        "function": {
+            "name": "add_word_to_flashcard",
+            "description": "Thêm từ tiếng Anh vào danh sách học (flashcard)",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "word": {
+                        "type": "string",
+                        "description": "Từ tiếng Anh cần thêm vào danh sách",
+                    }
+                },
+                "required": ["word"],
+            },
+        },
+    }
+]
 
 
 # Chatbot route
@@ -149,25 +146,71 @@ def is_english_learning_question(question):
 def chat():
     data = request.get_json()
     user_message = data.get("message", "")
-    if not is_english_learning_question(user_message):
-        return {
-            "reply": "I am an English support chatbox. I cannot answer outside the scope of the request."
-        }
-    # Use OpenAI to answer English learning questions
     messages = [
         {
             "role": "system",
             "content": (
-                "You are an English learning support chatbot. Answer questions about English vocabulary, grammar, example sentences, and learning tips."
+                "You are a friendly and multilingual chatbot that helps users learn English. "
+                "You can understand and respond in the user's language, such as Vietnamese, English, and others.\n\n"
+                "Your main goals are:\n"
+                "1. Help users learn English vocabulary, grammar, and provide example sentences and tips.\n"
+                "2. Allow casual and friendly conversation (e.g. 'How are you?', 'Hôm nay bạn thế nào?').\n"
+                "3. If the user asks about a topic unrelated to English learning or casual talk, politely respond:\n"
+                "   'I'm here to help with English learning topics. Could you please ask something related to vocabulary, grammar, or learning tips?'\n"
+                "4. If the user writes something in English with grammar mistakes, kindly point out the mistakes, explain them briefly, and continue the conversation naturally.\n\n"
+                "Always detect and respond in the same language the user uses."
             ),
+        },
+        {"role": "user", "content": "How are you today?"},
+        {
+            "role": "assistant",
+            "content": "I'm doing great, thank you! How can I help you learn English today?",
+        },
+        {"role": "user", "content": "I very like this word."},
+        {
+            "role": "assistant",
+            "content": (
+                "I think you meant: 'I really like this word.' — 'Very' is not used this way in this context. "
+                "Keep practicing, you're doing well!"
+            ),
+        },
+        {"role": "user", "content": "What's the weather like?"},
+        {
+            "role": "assistant",
+            "content": (
+                "I'm here to help with English learning topics. Could you please ask something related "
+                "to vocabulary, grammar, or learning tips?"
+            ),
+        },
+        {"role": "user", "content": "Bạn khỏe không?"},
+        {
+            "role": "assistant",
+            "content": "Mình khỏe, cảm ơn bạn! Bạn muốn học gì hôm nay về tiếng Anh?",
         },
         {"role": "user", "content": user_message},
     ]
     response = client.chat.completions.create(
         model="GPT-4o-mini",
         messages=messages,
+        tools=function_tools,
+        tool_choice="auto",
     )
-    reply = response.choices[0].message.content
+    choice = response.choices[0]
+    reply = choice.message.content or ""
+
+    if choice.finish_reason == "tool_calls":
+        tool_call = choice.message.tool_calls[0]
+        function_args = json.loads(tool_call.function.arguments)
+        word = function_args.get("word")
+
+        if word:
+            explanation = explain_word(word)
+            save_to_history(word, explanation)
+            reply = f"✅ Đã thêm từ '{word}' vào flashcard."
+        else:
+            reply = "Không tìm thấy từ để thêm."
+    else:
+        reply = choice.message.content or "Xin lỗi, tôi không hiểu bạn."
     return {"reply": reply}
 
 
