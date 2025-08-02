@@ -117,7 +117,58 @@ def delete_flashcard_route(index):
     # Chuyển đổi index vì list được đảo ngược khi hiển thị
     actual_index = len(history) - 1 - index
     delete_flashcard(actual_index)
-    return redirect(url_for('flashcard_list'))
+    return redirect(url_for("flashcard_list"))
+
+
+# Simple keyword-based filter for English learning scope
+def is_english_learning_question(question):
+    keywords = [
+        "english",
+        "vocabulary",
+        "word",
+        "grammar",
+        "sentence",
+        "example",
+        "meaning",
+        "definition",
+        "translate",
+        "translation",
+        "mnemonic",
+        "tip",
+        "learn",
+        "practice",
+        "fill in the blank",
+        "multiple choice",
+    ]
+    question_lower = question.lower()
+    return any(kw in question_lower for kw in keywords)
+
+
+# Chatbot route
+@app.route("/chat", methods=["POST"])
+def chat():
+    data = request.get_json()
+    user_message = data.get("message", "")
+    if not is_english_learning_question(user_message):
+        return {
+            "reply": "I am an English support chatbox. I cannot answer outside the scope of the request."
+        }
+    # Use OpenAI to answer English learning questions
+    messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are an English learning support chatbot. Answer questions about English vocabulary, grammar, example sentences, and learning tips."
+            ),
+        },
+        {"role": "user", "content": user_message},
+    ]
+    response = client.chat.completions.create(
+        model="GPT-4o-mini",
+        messages=messages,
+    )
+    reply = response.choices[0].message.content
+    return {"reply": reply}
 
 
 if __name__ == "__main__":
